@@ -4,13 +4,37 @@
   "private": true,
   "workspaces": [
     "services/*",
+    "gateway",
     "frontend",
-    "shared",
-    "gateway"
+    "shared"
   ],
   "scripts": {
     "dev": "docker-compose -f docker-compose.dev.yml up",
-    "prod": "docker-compose up",
+    "start": "docker-compose up",
+    "stop": "docker-compose down",
+    "dev:auth": "npm run dev --workspace=services/auth-service",
+    "dev:user": "npm run dev --workspace=services/user-service",
+    "dev:task": "npm run dev --workspace=services/task-service",
+    "dev:notification": "npm run dev --workspace=services/notification-service",
+    "dev:gateway": "npm run dev --workspace=gateway",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "test": "npm run test --workspaces --if-present",
+    "test:auth": "npm run test --workspace=services/auth-service",
+    "test:user": "npm run test --workspace=services/user-service",
+    "test:task": "npm run test --workspace=services/task-service",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
     "install:all": "npm install"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "winston": "^3.19.0"
   }
 }

@@ -1,11 +1,13 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm install
+
+RUN npm install --production
+
 COPY . .
 
-FROM base AS dev
-CMD ["npm", "run", "dev"]
+EXPOSE 3000
 
-FROM base AS prod
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

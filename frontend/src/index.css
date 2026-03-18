@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark theme (default) */
+html {
+  background-color: #0d0f14;
+  color: #e8eaf0;
+}
+
+/* Light theme */
+html:not(.dark) {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+html:not(.dark) .bg-gray-950 { background-color: #f1f5f9 !important; }
+html:not(.dark) .bg-gray-900 { background-color: #ffffff !important; }
+html:not(.dark) .bg-gray-800 { background-color: #f8fafc !important; }
+html:not(.dark) .border-gray-800 { border-color: #e2e8f0 !important; }
+html:not(.dark) .border-gray-700 { border-color: #cbd5e1 !important; }
+html:not(.dark) .text-white { color: #1e293b !important; }
+html:not(.dark) .text-gray-300 { color: #475569 !important; }
+html:not(.dark) .text-gray-400 { color: #64748b !important; }
+html:not(.dark) .text-gray-500 { color: #94a3b8 !important; }
+html:not(.dark) .text-gray-600 { color: #94a3b8 !important; }
+html:not(.dark) .hover\:bg-gray-800:hover { background-color: #f1f5f9 !important; }

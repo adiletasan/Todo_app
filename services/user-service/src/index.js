@@ -1,12 +1,22 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
+const helmet = require('helmet');
+const cors = require('cors');
+const userRoutes = require('./routes/user.routes');
+const { startConsumer } = require('./consumers/user.consumer');
 
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+app.use(helmet());
+app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'user-service' }));
+app.use('/users', userRoutes);
 
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => console.log($Name running on port 3002));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-module.exports = app;
+// Запустить consumer
+startConsumer();
+
+app.listen(PORT, () => console.log(`user-service running on port ${PORT}`));

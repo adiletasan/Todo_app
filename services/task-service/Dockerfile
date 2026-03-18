@@ -1,11 +1,17 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
+RUN apk add --no-cache openssl
+
 WORKDIR /app
+
 COPY package*.json ./
+COPY prisma ./prisma/
+
 RUN npm install
+RUN npx prisma generate
+
 COPY . .
 
-FROM base AS dev
-CMD ["npm", "run", "dev"]
+EXPOSE 3003
 
-FROM base AS prod
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

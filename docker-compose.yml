@@ -1,68 +1,273 @@
-version: '3.8'
+version: '3.9'
 
 services:
+
+  # ─────────────────────────────────────────
+  # GATEWAY
+  # ─────────────────────────────────────────
   gateway:
     build: ./gateway
+    container_name: gateway
     ports:
       - "3000:3000"
-    env_file: ./gateway/.env
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - TASK_SERVICE_URL=http://task-service:3003
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - auth-service
       - user-service
       - task-service
-      - notification-service
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # AUTH SERVICE
+  # ─────────────────────────────────────────
   auth-service:
     build: ./services/auth-service
-    env_file: ./services/auth-service/.env
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@auth-db:5432/auth_db
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
     depends_on:
-      - postgres
-      - redis
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # USER SERVICE
+  # ─────────────────────────────────────────
   user-service:
     build: ./services/user-service
-    env_file: ./services/user-service/.env
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@user-db:5432/user_db
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASS=${MINIO_PASS}
+      - MINIO_BUCKET=avatars
     depends_on:
-      - postgres
+      user-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # TASK SERVICE
+  # ─────────────────────────────────────────
   task-service:
     build: ./services/task-service
-    env_file: ./services/task-service/.env
+    container_name: task-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@task-db:5432/task_db
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
     depends_on:
-      - postgres
+      task-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # NOTIFICATION SERVICE
+  # ─────────────────────────────────────────
   notification-service:
     build: ./services/notification-service
-    env_file: ./services/notification-service/.env
+    container_name: notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # FRONTEND
+  # ─────────────────────────────────────────
   frontend:
     build: ./frontend
+    container_name: frontend
     ports:
-      - "5173:80"
+      - "80:80"
+    depends_on:
+      - gateway
+    networks:
+      - app-network
+    restart: unless-stopped
 
-  postgres:
-    image: postgres:15-alpine
+  # ─────────────────────────────────────────
+  # DATABASES
+  # ─────────────────────────────────────────
+  auth-db:
+    ports:
+      - "5433:5432"
+    image: postgres:16-alpine
+    container_name: auth-db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: monorepo
+      - POSTGRES_DB=auth_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  user-db:
+    ports:
+      - "5434:5432"
+    image: postgres:16-alpine
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=user_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  task-db:
+    ports:
+      - "5435:5432"
+    image: postgres:16-alpine
+    container_name: task-db
+    environment:
+      - POSTGRES_DB=task_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - task-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d task_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # REDIS
+  # ─────────────────────────────────────────
   redis:
     image: redis:7-alpine
+    container_name: redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  # ─────────────────────────────────────────
+  # MiniIO
+  # ─────────────────────────────────────────
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASS}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+    restart: unless-stopped
+  # ─────────────────────────────────────────
+  # RABBITMQ
+  # ─────────────────────────────────────────
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"    # AMQP протокол
+      - "15672:15672"  # Web UI (admin панель)
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+# ─────────────────────────────────────────
+# VOLUMES
+# ─────────────────────────────────────────
 volumes:
-  pgdata:
+  auth-db-data:
+  user-db-data:
+  task-db-data:
+  redis-data:
+  rabbitmq-data:
+  minio-data:
+
+# ─────────────────────────────────────────
+# NETWORKS
+# ─────────────────────────────────────────
+networks:
+  app-network:
+    driver: bridge
