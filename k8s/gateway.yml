@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: todo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: adiletasan/gateway:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: JWT_SECRET
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service:3001
+            - name: USER_SERVICE_URL
+              value: http://user-service:3002
+            - name: TASK_SERVICE_URL
+              value: http://task-service:3003
+            - name: FRONTEND_URL
+              value: https://todo.yourdomain.com
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: todo-app
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 3000
+      targetPort: 3000

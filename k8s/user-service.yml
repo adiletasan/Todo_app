@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: todo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: adiletasan/user-service:latest
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: USER_DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: RABBITMQ_URL
+            - name: MINIO_ENDPOINT
+              value: minio
+            - name: MINIO_PORT
+              value: "9000"
+            - name: MINIO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: MINIO_USER
+            - name: MINIO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: todo-secrets
+                  key: MINIO_PASS
+            - name: MINIO_BUCKET
+              value: avatars
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: todo-app
+spec:
+  selector:
+    app: user-service
+  ports:
+    - port: 3002
+      targetPort: 3002
