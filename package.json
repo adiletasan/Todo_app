@@ -1,0 +1,16 @@
+{
+  "name": "monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "frontend",
+    "shared",
+    "gateway"
+  ],
+  "scripts": {
+    "dev": "docker-compose -f docker-compose.dev.yml up",
+    "prod": "docker-compose up",
+    "install:all": "npm install"
+  }
+}

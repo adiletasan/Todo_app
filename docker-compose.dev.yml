@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./services/auth-service
+      target: dev
+    volumes:
+      - ./services/auth-service/src:/app/src
+    env_file: ./services/auth-service/.env
+    command: npm run dev
+
+  user-service:
+    build:
+      context: ./services/user-service
+      target: dev
+    volumes:
+      - ./services/user-service/src:/app/src
+    env_file: ./services/user-service/.env
+    command: npm run dev
+
+  task-service:
+    build:
+      context: ./services/task-service
+      target: dev
+    volumes:
+      - ./services/task-service/src:/app/src
+    env_file: ./services/task-service/.env
+    command: npm run dev
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      target: dev
+    volumes:
+      - ./services/notification-service/src:/app/src
+    env_file: ./services/notification-service/.env
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    volumes:
+      - ./frontend/src:/app/src
+    ports:
+      - "5173:5173"
+    command: npm run dev

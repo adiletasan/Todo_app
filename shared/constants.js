@@ -1,0 +1,22 @@
+exports.STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  INTERNAL: 500,
+};
+
+exports.ROLES = {
+  ADMIN: "admin",
+  USER: "user",
+  MODERATOR: "moderator",
+};
+
+exports.LIMITS = {
+  MAX_TASKS_PER_USER: 1000,
+  MAX_LOGIN_ATTEMPTS: 5,
+  TOKEN_EXPIRY: "7d",
+  REFRESH_TOKEN_EXPIRY: "30d",
+};

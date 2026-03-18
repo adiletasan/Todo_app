@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "3000:3000"
+    env_file: ./gateway/.env
+    depends_on:
+      - auth-service
+      - user-service
+      - task-service
+      - notification-service
+
+  auth-service:
+    build: ./services/auth-service
+    env_file: ./services/auth-service/.env
+    depends_on:
+      - postgres
+      - redis
+
+  user-service:
+    build: ./services/user-service
+    env_file: ./services/user-service/.env
+    depends_on:
+      - postgres
+
+  task-service:
+    build: ./services/task-service
+    env_file: ./services/task-service/.env
+    depends_on:
+      - postgres
+
+  notification-service:
+    build: ./services/notification-service
+    env_file: ./services/notification-service/.env
+    depends_on:
+      - rabbitmq
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: monorepo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  pgdata:
