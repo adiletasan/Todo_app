@@ -31,6 +31,15 @@ jest.mock('ioredis', () => {
   }));
 });
 
+jest.mock('amqplib', () => ({
+  connect: jest.fn().mockResolvedValue({
+    createChannel: jest.fn().mockResolvedValue({
+      assertQueue: jest.fn(),
+      sendToQueue: jest.fn(),
+    }),
+  }),
+}));
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
