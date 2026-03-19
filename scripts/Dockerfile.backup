@@ -1,0 +1,13 @@
+FROM postgres:16-alpine
+
+RUN apk add --no-cache curl bash
+
+# Install MinIO client
+RUN curl -o /usr/local/bin/mc \
+  https://dl.min.io/client/mc/release/linux-amd64/mc && \
+  chmod +x /usr/local/bin/mc
+
+COPY backup.sh /backup.sh
+RUN chmod +x /backup.sh
+
+CMD ["/backup.sh"]

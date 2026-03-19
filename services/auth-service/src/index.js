@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
+const { metricsMiddleware, metricsEndpoint } = require('./middleware/metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(metricsMiddleware);
+app.get('/metrics', metricsEndpoint);
 
 app.use('/auth', authRoutes);
 

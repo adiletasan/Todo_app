@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: adiletasan/user-service:latest
+          image: adilet05/user-service:latest
           ports:
             - containerPort: 3002
           env:

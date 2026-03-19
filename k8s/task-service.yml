@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: task-service
-          image: adiletasan/task-service:latest
+          image: adilet05/task-service:latest
           ports:
             - containerPort: 3003
           env:

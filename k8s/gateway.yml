@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: adiletasan/gateway:latest
+          image: adilet05/gateway:latest
           ports:
             - containerPort: 3000
           env:

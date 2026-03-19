@@ -6,9 +6,14 @@ const morgan = require('morgan');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { verifyToken } = require('./middleware/jwt');
 const rateLimit = require('express-rate-limit');
+const { metricsMiddleware, metricsEndpoint } = require('./middleware/metrics');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(metricsMiddleware);
+app.get('/metrics', metricsEndpoint);
 
 app.use(helmet());
 app.use(cors({
@@ -19,7 +24,7 @@ app.use(morgan('combined'));
 
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 1000, // увеличь с 100 до 1000
   message: { message: 'Too many requests' },
 });
 app.use(globalLimiter);

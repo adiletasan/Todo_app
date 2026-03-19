@@ -23,7 +23,28 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+  
 
+  backup:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.backup
+    container_name: backup
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASS=${MINIO_PASS}
+    networks:
+      - app-network
+    depends_on:
+      - auth-db
+      - user-db
+      - task-db
+      - minio
+    restart: "no"
+    
   # ─────────────────────────────────────────
   # AUTH SERVICE
   # ─────────────────────────────────────────
@@ -212,7 +233,36 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3005:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
 
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - app-network
+    restart: unless-stopped 
   # ─────────────────────────────────────────
   # MiniIO
   # ─────────────────────────────────────────
@@ -231,6 +281,56 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+
+  backup-cron:
+    image: alpine:latest
+    container_name: backup-cron
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASS=${MINIO_PASS}
+    volumes:
+      - ./scripts/backup.sh:/backup.sh
+    networks:
+      - app-network
+    depends_on:
+      - auth-db
+      - user-db
+      - task-db
+      - minio
+    command: sh -c "echo '0 2 * * * /backup.sh >> /var/log/backup.log 2>&1' | crontab - && crond -f"
+    restart: unless-stopped
+
+
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - loki
   # ─────────────────────────────────────────
   # RABBITMQ
   # ─────────────────────────────────────────
@@ -264,7 +364,9 @@ volumes:
   redis-data:
   rabbitmq-data:
   minio-data:
-
+  prometheus-data:
+  grafana-data:
+  loki-data:
 # ─────────────────────────────────────────
 # NETWORKS
 # ─────────────────────────────────────────
